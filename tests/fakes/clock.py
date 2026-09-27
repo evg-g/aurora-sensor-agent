@@ -37,5 +37,15 @@ class FakeClock:
         self._monotonic += seconds
         self._now = self._now + timedelta(seconds=seconds)
 
+    def step_wall(self, seconds: float) -> None:
+        """Step the wall clock only, leaving the monotonic counter untouched.
+
+        This models an NTP correction (or a manually set RTC): ``now`` jumps, ``monotonic`` does
+        not. ``seconds`` may be negative to step the clock backwards. It is exactly the divergence
+        the agent's clock-step detector looks for, and the backward-jump the excursion machine must
+        survive.
+        """
+        self._now = self._now + timedelta(seconds=seconds)
+
 
 __all__ = ["FakeClock"]
