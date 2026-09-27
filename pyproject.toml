@@ -18,6 +18,8 @@ dev = [
     "hypothesis>=6.112,<7",
     "ruff>=0.7,<0.8",
     "mypy>=1.13,<2",
+    "pyserial>=3.5,<4",
+    "gpiozero>=2.0,<3",
 ]
 
 [project.scripts]
@@ -52,8 +54,10 @@ files = ["src", "tests"]
 
 # Optional hardware libraries are imported lazily in real/ and are not installed off-device.
 # They have no type stubs, so tell mypy to treat them as untyped rather than fail to find them.
+# pyserial and gpiozero ARE installed (dev deps, used by the serial and GPIO test tiers), but ship no
+# usable stubs, so they are treated as untyped too.
 [[tool.mypy.overrides]]
-module = ["smbus2", "smbus2.*"]
+module = ["smbus2", "smbus2.*", "serial", "serial.*", "gpiozero", "gpiozero.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
