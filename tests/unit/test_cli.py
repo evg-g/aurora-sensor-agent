@@ -26,3 +26,14 @@ def test_version_flag_prints_version(capsys: pytest.CaptureFixture[str]) -> None
     assert excinfo.value.code == 0
     captured = capsys.readouterr()
     assert __version__ in captured.out
+
+
+def test_sim_subcommand_prints_readings(capsys: pytest.CaptureFixture[str]) -> None:
+    # interval 0 keeps the real clock's sleep instant, so the test stays fast.
+    exit_code = main(["sim", "--count", "2", "--interval", "0", "--seed", "1"])
+
+    captured = capsys.readouterr()
+    lines = [line for line in captured.out.splitlines() if line.strip()]
+    assert exit_code == 0
+    assert len(lines) == 2
+    assert all("T=" in line and "RH=" in line for line in lines)
