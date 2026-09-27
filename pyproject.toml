@@ -50,6 +50,12 @@ warn_unused_ignores = true
 show_error_codes = true
 files = ["src", "tests"]
 
+# Optional hardware libraries are imported lazily in real/ and are not installed off-device.
+# They have no type stubs, so tell mypy to treat them as untyped rather than fail to find them.
+[[tool.mypy.overrides]]
+module = ["smbus2", "smbus2.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"

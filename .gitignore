@@ -19,10 +19,12 @@ coverage.xml
 htmlcov/
 .hypothesis/
 
-# Local store-and-forward buffer / traces
+# Local store-and-forward buffer / runtime traces
 *.sqlite
 *.sqlite3
 traces/*.jsonl
+# ...but committed replay fixtures are regression assets and must be tracked.
+!tests/fixtures/traces/*.jsonl
 
 # Env
 .env
