@@ -28,8 +28,8 @@ typecheck: ## Static type check (strict)
 
 ci-local: lint typecheck test ## Run the full PR gate set locally
 
-sim: ## Run the agent against the simulator (added in a later milestone)
-	@echo "The simulator target is implemented in milestone 8/9."
+sim: ## Run the driver against the simulated sensor and print readings
+	$(UV) run aurora-agent sim --count 10 --interval 1
 
 fleet: ## Start N virtual devices (added in a later milestone)
 	@echo "The fleet target is implemented in milestone 11."
