@@ -2,8 +2,9 @@
 
 Why this file exists: this agent runs on a Raspberry Pi wired to a temperature sensor, but almost
 none of its tests need a Pi, a sensor, a network, or Docker. This explains how, using what is built
-through milestone 8. Later tiers (GPIO, serial, the full fault catalogue, soak, hardware-in-the-loop)
-are added in the milestones noted at the end.
+through milestone 9 (the register-level sensor, the behaviour logic, GPIO, serial, the full fault
+catalogue, and the soak test). The network tiers (software- and hardware-in-the-loop) are added in
+the milestones noted at the end.
 
 ## The one idea
 
@@ -91,6 +92,70 @@ bus. `sim` and `replay` run everywhere; `real` is skipped unless a Pi with an SH
 the class still documents exactly what the real bus must satisfy. A separate test proves the real bus
 imports and constructs with no `smbus2` installed — its hardware imports are lazy, deferred to the
 first actual read.
+
+## The behaviour layer (milestone 9)
+
+Above the driver sits the logic that turns readings into decisions. All of it is pure or takes an
+injected `Clock`, so it is tested with no hardware, network, or Docker.
+
+### The excursion state machine
+
+The centrepiece (`logic/excursion.py`, ADR 0003). The rule in one line: out of the safe band for
+longer than `dwell_minutes` raises an excursion; it clears only after `recovery_minutes` back in
+range. A door opening (a short spike) must not alarm.
+
+It is a pure function of `(timestamps, values, policy)` — it never reads a clock. That is what lets a
+seven-day test run in milliseconds and what lets the server re-derive the *same* excursions later. The
+shared fixtures in `tests/fixtures/excursions/cases.json` are the contract both sides are held to.
+
+Analogy: it is a kettle's thermostat with a delay. It does not cut out the instant the water dips
+below temperature (that would be someone briefly lifting the lid); it waits to be sure.
+
+### Conditioning: calibration + median filter
+
+Before a reading reaches the machine, the agent applies a fixed calibration offset and a
+**median-of-N** filter (`logic/filter.py`). A median, not an average, because one wild sample (a
+glitch that passed CRC by chance) must not move the result — the median ignores a lone outlier. A
+NaN/inf reading is rejected outright, because `nan > max` is `False`, so a NaN would otherwise look
+in-range forever.
+
+### Store-and-forward buffer
+
+`buffer/sqlite.py` (ADR 0004) writes every reading to local SQLite *before* sending, so an outage,
+reboot, or power cut loses nothing. It is bounded — a ring buffer that drops the oldest un-sent
+reading when full — so an offline device cannot fill its disk. The row id is the reading's
+`sequence`; `AUTOINCREMENT` guarantees it is never reused.
+
+### Batching, backoff, idempotency
+
+Buffered readings drain in batches (`logic/batch.py`) bounded by count and bytes. Each batch has a
+device-generated idempotency key derived from its rows, so a retried batch is dropped by the server
+instead of duplicated. A failed publish backs off exponentially with **full jitter**
+(`logic/backoff.py`) so a reconnecting fleet does not stampede the broker.
+
+### GPIO and serial
+
+- **GPIO** (`real/gpio.py`, driven by `logic/indicator.py`): the status LED and buzzer. Tested through
+  `gpiozero`'s `MockFactory`, which emulates pins in memory — the real `gpiozero` code path runs on a
+  laptop.
+- **Serial** (`drivers/legacy_probe.py`): the legacy UART probe with an ASCII, checksum-framed
+  protocol. The frame parser is pure (split frames, garbage, bad checksum), and the I/O is tested over
+  `pyserial`'s `loop://` and a real `pty` pair — no hardware.
+
+### The higher-layer fault catalogue
+
+The chip/bus faults above are joined by the faults that strike after decoding (`sim/pipeline_faults.py`,
+tested in `tests/faults/`): a **NaN** in the pipeline (rejected), a **disk full** on a buffer write
+(flagged, no crash, no loss of buffered data), and a **clock jump** (no spurious excursion, skew
+flagged). The guarantee: no fault loses buffered data or produces a duplicate on the server.
+
+### Soak with a fake clock
+
+`tests/soak/` runs seven simulated days in a fraction of a second on a `FakeClock` and checks memory
+does not creep (`tracemalloc`), the buffer stays bounded across a two-day outage, and behaviour is
+correct across a DST change. Run it with `make soak`.
+
+Watch the whole loop run: `make run` (or `uv run aurora-agent run --count 10`).
 
 ## What runs where
 
