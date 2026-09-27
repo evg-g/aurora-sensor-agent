@@ -29,7 +29,8 @@ protocols so the code is testable without hardware.
 
 ```bash
 make setup / make test / make lint / make ci-local
-make sim     # run the agent against the simulator (later milestone)
-make fleet   # N virtual devices (later milestone)
-make soak    # compressed multi-day soak test (later milestone)
+make sim     # run the SHT4x driver against the simulator (prints readings)
+make run     # run the whole agent loop against the simulator (prints the health beacon)
+make soak    # compressed seven-day soak test (fake clock, tracemalloc)
+make fleet   # N virtual devices (milestone 11)
 ```

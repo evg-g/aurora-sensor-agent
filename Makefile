@@ -3,7 +3,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck ci-local sim fleet soak clean
+.PHONY: help setup test lint fix typecheck ci-local sim run fleet soak clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -31,11 +31,14 @@ ci-local: lint typecheck test ## Run the full PR gate set locally
 sim: ## Run the driver against the simulated sensor and print readings
 	$(UV) run aurora-agent sim --count 10 --interval 1
 
+run: ## Run the whole agent loop against the simulator and print the health beacon
+	$(UV) run aurora-agent run --count 10 --interval 0
+
 fleet: ## Start N virtual devices (added in a later milestone)
 	@echo "The fleet target is implemented in milestone 11."
 
-soak: ## Run the compressed soak test (added in a later milestone)
-	@echo "The soak target is implemented in milestone 9."
+soak: ## Run the compressed seven-day soak test (fake clock, tracemalloc)
+	$(UV) run pytest tests/soak -q
 
 clean: ## Remove caches and build artifacts
 	rm -rf .pytest_cache .mypy_cache .ruff_cache .hypothesis htmlcov .coverage coverage.xml dist build

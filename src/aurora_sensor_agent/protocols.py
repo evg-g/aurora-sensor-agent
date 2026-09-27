@@ -9,13 +9,15 @@ satisfies it, with no base class and no registration. That is what lets the same
 against real hardware, a simulator, or a recorded trace, and what lets the whole logic layer be
 tested on a laptop with no hardware, no network, and no Docker (ADR 0001).
 
-Which seams are exercised in milestone 8:
+Which seams are exercised where:
 
-- ``I2CBus`` and ``Clock`` are implemented (``real``/``sim``/``replay`` buses, ``SystemClock``,
-  and a ``FakeClock`` in the tests) and driven by the SHT4x driver.
-- ``SerialPort`` (legacy probe), ``GpioPin`` (LED + buzzer), ``Transport`` (MQTT/HTTP), and
-  ``BufferStore`` (SQLite store-and-forward) are defined now as the agreed contracts; their
-  implementations land in milestones 9-11. Defining them here keeps the seams in one place.
+- ``I2CBus`` and ``Clock`` (milestone 8): ``real``/``sim``/``replay`` buses, ``SystemClock``, and a
+  ``FakeClock`` in the tests, driven by the SHT4x driver.
+- ``SerialPort`` (legacy probe), ``GpioPin`` (LED + buzzer), and ``BufferStore`` (SQLite
+  store-and-forward) are implemented in milestone 9 (``real/serial.py``, ``real/gpio.py``,
+  ``buffer/sqlite.py``).
+- ``Transport`` (MQTT primary, HTTP fallback) has an in-memory implementation for milestone 9's run
+  loop and soak test; the real network transports land in milestones 10-11.
 """
 
 from __future__ import annotations
@@ -51,7 +53,7 @@ class SerialPort(Protocol):
     """A byte-oriented serial line for the legacy UART probe.
 
     Framing, partial reads, and timeouts are the caller's problem — this seam only moves bytes.
-    Implemented in milestone 9 (``pyserial`` ``loop://`` and ``pty`` pairs in tests).
+    Implemented over ``pyserial`` (``real/serial.py``); tested with ``loop://`` and ``pty`` pairs.
     """
 
     def write(self, data: bytes) -> int:
@@ -71,7 +73,7 @@ class SerialPort(Protocol):
 class GpioPin(Protocol):
     """A single digital output pin (status LED segment or buzzer).
 
-    Implemented in milestone 9 against ``gpiozero``'s ``MockFactory`` in tests.
+    Implemented over ``gpiozero`` (``real/gpio.py``); tested against its ``MockFactory``.
     """
 
     def high(self) -> None:
@@ -115,8 +117,9 @@ class Clock(Protocol):
 class Transport(Protocol):
     """The uplink to the backend (MQTT primary, HTTP fallback).
 
-    Defined here as the seam; the MQTT/HTTP implementations and at-least-once delivery land in
-    milestones 10-11. ``publish`` carries an already-serialised payload for a topic/endpoint.
+    An in-memory implementation (``transport/memory.py``) backs milestone 9's run loop and soak
+    test; the MQTT/HTTP implementations land in milestones 10-11. ``publish`` carries an
+    already-serialised payload for a topic/endpoint.
     """
 
     def publish(self, topic: str, payload: bytes) -> None:
@@ -132,8 +135,8 @@ class Transport(Protocol):
 class BufferStore(Protocol):
     """The local store-and-forward buffer (SQLite on the device).
 
-    Readings are appended while offline and drained once the uplink returns. Defined here as the
-    seam; the SQLite implementation and the eviction policy land in milestone 9.
+    Readings are appended while offline and drained once the uplink returns. Implemented in
+    ``buffer/sqlite.py`` with a bounded ring-buffer eviction policy (ADR 0004).
     """
 
     def append(self, reading_json: str) -> int:
