@@ -3,7 +3,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo \
+.PHONY: help setup test sil lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo \
 	wheel deb image package soak clean
 
 help: ## Show this help
@@ -14,7 +14,10 @@ setup: ## Create the venv and install dependencies (uv)
 	$(UV) sync --extra dev
 
 test: ## Run tests with coverage (no hardware / network / Docker needed)
-	$(UV) run pytest tests -q -m "not hil" --cov --cov-report=term-missing
+	$(UV) run pytest tests -q -m "not hil and not sil" --cov --cov-report=term-missing
+
+sil: ## Run the software-in-the-loop tier (agent vs Mosquitto + the API in Docker)
+	$(UV) run pytest tests/sil -q -m sil
 
 lint: ## Lint and check formatting
 	$(UV) run ruff check .

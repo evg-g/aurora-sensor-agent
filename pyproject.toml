@@ -68,9 +68,9 @@ files = ["src", "tests"]
 module = ["smbus2", "smbus2.*", "serial", "serial.*", "gpiozero", "gpiozero.*"]
 ignore_missing_imports = true
 
-# testcontainers (SIL tier only) ships no usable stubs; treat it as untyped.
+# testcontainers + docker (SIL tier only) ship no usable stubs; treat them as untyped.
 [[tool.mypy.overrides]]
-module = ["testcontainers", "testcontainers.*"]
+module = ["testcontainers", "testcontainers.*", "docker", "docker.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -78,6 +78,7 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers --strict-config"
 markers = [
     "hil: hardware-in-the-loop tests; deselected by default, run only with real hardware",
+    "sil: software-in-the-loop tests; need Docker + the API image, run in their own CI job",
 ]
 
 [tool.coverage.run]

@@ -1,0 +1,61 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # 03:00 UTC daily
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    name: seven-day soak (compressed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/soak -q
+
+  flake:
+    name: flake hunt (unit tiers x3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      # -p no:randomly is a no-op if the plugin is absent; -o keeps output terse.
+      - run: uv run pytest tests -q -m "not hil and not sil"
+
+  hil:
+    name: hardware-in-the-loop (self-hosted, gated)
+    # Only runs when explicitly enabled on a repo with real hardware wired up. Off by default, so a
+    # fork or a runner without hardware skips it cleanly and nightly stays green.
+    if: vars.HIL_ENABLED == 'true'
+    runs-on: [self-hosted, aurora-hil]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - run: uv run pytest tests -q -m hil

@@ -42,7 +42,7 @@ jobs:
       - run: uv run mypy
 
   test:
-    name: unit + logic + buffer + gpio + serial + fault + soak tiers
+    name: unit + logic + buffer + gpio + serial + fault + contract + fleet + soak tiers
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -56,5 +56,81 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv sync --extra dev --python ${{ matrix.python-version }}
-      # These tiers must pass with no hardware, no network, and no Docker.
-      - run: uv run pytest tests -q -m "not hil" --cov --cov-report=xml --cov-report=term-missing
+      # These tiers must pass with no hardware, no network, and no Docker. hil and sil are excluded:
+      # hil needs real hardware, sil needs Docker + the API image (its own job below).
+      - run: uv run pytest tests -q -m "not hil and not sil" --cov --cov-report=xml --cov-report=term-missing
+
+  contract:
+    name: telemetry contract drift gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # Cross-repo drift check needs the API repo. Set the API_REPO variable (e.g. owner/appointments-api)
+      # to enable it; without it the job runs the in-repo checksum guard only and stays green.
+      - if: vars.API_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.API_REPO }}
+          path: appointments-api
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - name: contract drift gate
+        env:
+          AURORA_API_REPO: ${{ vars.API_REPO != '' && '../appointments-api' || 'appointments-api' }}
+        run: uv run python scripts/check_contract.py
+
+  sil:
+    name: software-in-the-loop (agent vs Mosquitto + API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      # SIL needs the built API image. When API_REPO is set, check it out and build the image;
+      # otherwise the SIL tests skip cleanly (the image is absent) and the job stays green.
+      - if: vars.API_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.API_REPO }}
+          path: api-src
+      - if: vars.API_REPO != ''
+        run: docker build -t appointments-api:local api-src
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - run: uv run pytest tests/sil -q -m sil
+
+  package:
+    name: build wheel + .deb + signed OTA manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - name: build wheel + .deb
+        run: bash scripts/build_deb.sh
+      - name: sign + verify an OTA manifest
+        # Uses the release private key when configured, else an ephemeral key so the flow is
+        # exercised on every PR. Either way the artifact is verified before upload.
+        env:
+          OTA_PRIVATE_KEY: ${{ secrets.OTA_PRIVATE_KEY }}
+        run: bash scripts/ci_sign_ota.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.deb
+            dist/manifest.json
+            keys/ota_public.pem
+          retention-days: 14
