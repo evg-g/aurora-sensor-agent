@@ -3,7 +3,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet soak clean
+.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo soak clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -37,8 +37,20 @@ sim: ## Run the driver against the simulated sensor and print readings
 run: ## Run the whole agent loop against the simulator and print the health beacon
 	$(UV) run aurora-agent run --count 10 --interval 0
 
-fleet: ## Start N virtual devices (added in a later milestone)
-	@echo "The fleet target is implemented in milestone 11."
+fleet: ## Run the virtual device fleet from fleet.yaml and print a health table
+	$(UV) run aurora-agent fleet --config fleet.yaml --cycles 20
+
+rollout: ## Staged OTA rollout across the fleet (BAD_BUILD=1 to demo the auto-halt)
+	$(UV) run aurora-agent rollout --config fleet.yaml --version 1.1.0 $(if $(BAD_BUILD),--bad-build,)
+
+ota-demo: ## Generate a keypair, sign a demo artifact, and verify the OTA manifest end to end
+	$(UV) run python scripts/gen_ota_key.py
+	@mkdir -p dist
+	@echo "demo-firmware-payload" > dist/demo-artifact.bin
+	$(UV) run python scripts/build_ota_manifest.py --artifact dist/demo-artifact.bin \
+		--version 1.1.0 --private-key keys/ota_private.pem --out dist/manifest.json
+	$(UV) run python scripts/build_ota_manifest.py --verify --artifact dist/demo-artifact.bin \
+		--manifest dist/manifest.json --public-key keys/ota_public.pem --current-version 1.0.0
 
 soak: ## Run the compressed seven-day soak test (fake clock, tracemalloc)
 	$(UV) run pytest tests/soak -q
