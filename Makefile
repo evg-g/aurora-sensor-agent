@@ -3,7 +3,7 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck ci-local sim run fleet soak clean
+.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet soak clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -26,7 +26,10 @@ fix: ## Auto-fix and format
 typecheck: ## Static type check (strict)
 	$(UV) run mypy
 
-ci-local: lint typecheck test ## Run the full PR gate set locally
+contract-check: ## Telemetry-contract drift gate (checksums + cross-repo vs the API)
+	$(UV) run python scripts/check_contract.py
+
+ci-local: lint typecheck contract-check test ## Run the full PR gate set locally
 
 sim: ## Run the driver against the simulated sensor and print readings
 	$(UV) run aurora-agent sim --count 10 --interval 1

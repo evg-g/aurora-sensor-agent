@@ -27,6 +27,7 @@ dev = [
     "jsonschema>=4.23,<5",
     "testcontainers>=4.8,<5",
     "types-PyYAML>=6.0,<7",
+    "types-jsonschema>=4.23,<5",
 ]
 
 [project.scripts]
