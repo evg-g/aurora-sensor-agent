@@ -1,0 +1,13 @@
+Package: aurora-sensor-agent
+Version: @VERSION@
+Section: net
+Priority: optional
+Architecture: @ARCH@
+Depends: python3 (>= 3.12)
+Maintainer: Aurora Clinic <noreply@example.com>
+Description: Aurora Clinic cold-chain sensor agent
+ IoT agent for a clinic medical fridge: it samples the temperature/humidity
+ sensor, detects cold-chain excursions locally, buffers readings while offline,
+ and publishes them to the Aurora backend over MQTT with an HTTP fallback.
+ Installs as a systemd service. The agent and its Python dependencies are
+ vendored under /opt/aurora-sensor-agent/lib (no network needed at install).

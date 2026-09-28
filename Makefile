@@ -3,7 +3,8 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo soak clean
+.PHONY: help setup test lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo \
+	wheel deb image package soak clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -51,6 +52,17 @@ ota-demo: ## Generate a keypair, sign a demo artifact, and verify the OTA manife
 		--version 1.1.0 --private-key keys/ota_private.pem --out dist/manifest.json
 	$(UV) run python scripts/build_ota_manifest.py --verify --artifact dist/demo-artifact.bin \
 		--manifest dist/manifest.json --public-key keys/ota_public.pem --current-version 1.0.0
+
+wheel: ## Build the Python wheel + sdist into dist/
+	$(UV) build --out-dir dist
+
+deb: ## Build a .deb that installs the agent + deps and a systemd unit (needs dpkg-deb)
+	bash scripts/build_deb.sh
+
+image: ## Build the gateway/fleet-simulator Docker image
+	docker build -t aurora-sensor-agent:local .
+
+package: wheel deb ## Build every release artifact (wheel, sdist, .deb)
 
 soak: ## Run the compressed seven-day soak test (fake clock, tracemalloc)
 	$(UV) run pytest tests/soak -q
