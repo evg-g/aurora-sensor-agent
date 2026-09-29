@@ -1,11 +1,16 @@
 # aurora-sensor-agent
 
+[![ci](https://github.com/evg-g/aurora-sensor-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/evg-g/aurora-sensor-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+Part of **[Aurora Clinic](https://github.com/evg-g/aurora)** — three repos, one product.
+
 The device-side agent for **Aurora Clinic** cold-chain monitoring. A Python program that
 runs on a small board (Raspberry Pi Zero 2 W) next to a clinic's medical fridge, reads a
 temperature/humidity sensor, detects cold-chain breaches, buffers readings when offline,
 and reports them to the backend.
 
-One of three repos in the system — see the top-level `README.md`.
+One of three repos in the system — see the [top-level `README.md`](https://github.com/evg-g/aurora).
 
 ## Why this exists
 
@@ -24,7 +29,7 @@ fault catalogue and a compressed seven-day soak; **real MQTT (QoS 1) and HTTP-fa
 transports**; a **fleet simulator** and a **staged OTA rollout** with auto-halt; a **signed
 OTA manifest** the agent verifies before applying; **software-in-the-loop** tests against a
 real broker + the API in Docker; and packaging as a **.deb** and a gateway image. See the
-top-level `PLAN.md`.
+[build plan](https://github.com/evg-g/aurora/blob/main/docs/process/PLAN.md).
 
 ## Quick start
 

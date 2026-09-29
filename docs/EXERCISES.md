@@ -138,7 +138,7 @@ byte-compares it against the API's vendored copy — change one side only and it
 OpenAPI gate in reverse: the device is the producer here. Also confirm the self-test still builds a
 valid batch: `uv run pytest tests/contract`. See
 [ADR 0005](adr/0005-device-transports-and-sil.md) and the API's
-[CONTRACT_WORKFLOW.md](../../appointments-api/docs/CONTRACT_WORKFLOW.md).
+[CONTRACT_WORKFLOW.md](https://github.com/evg-g/appointments-api/blob/main/docs/CONTRACT_WORKFLOW.md).
 
 **Restore.** `git checkout -- contracts/`
 
