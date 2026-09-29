@@ -31,6 +31,13 @@ traces/*.jsonl
 .env.*
 !.env.example
 
+# OTA signing keys (private key never committed; public key is generated for demos/CI)
+keys/
+
+# Packaging output
+*.deb
+staging/
+
 # Editor / OS
 .idea/
 .vscode/

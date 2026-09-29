@@ -1,0 +1,25 @@
+#!/bin/sh
+# Post-install: create the service user, seed the config, and start the service.
+set -e
+
+if ! getent passwd aurora >/dev/null 2>&1; then
+    adduser --system --group --home /var/lib/aurora-sensor-agent --no-create-home aurora || true
+fi
+
+mkdir -p /var/lib/aurora-sensor-agent
+chown aurora:aurora /var/lib/aurora-sensor-agent
+
+# Install a real config from the shipped example only if the operator has not written one yet,
+# so an upgrade never clobbers device credentials.
+if [ ! -f /etc/aurora-sensor-agent/agent.env ]; then
+    cp /etc/aurora-sensor-agent/agent.env.example /etc/aurora-sensor-agent/agent.env
+fi
+
+# Only touch systemd on a host that is actually running it (not in a build container).
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload || true
+    systemctl enable aurora-sensor-agent.service || true
+    systemctl restart aurora-sensor-agent.service || true
+fi
+
+exit 0

@@ -104,6 +104,21 @@ The centrepiece (`logic/excursion.py`, ADR 0003). The rule in one line: out of t
 longer than `dwell_minutes` raises an excursion; it clears only after `recovery_minutes` back in
 range. A door opening (a short spike) must not alarm.
 
+```mermaid
+stateDiagram-v2
+    [*] --> NORMAL
+    NORMAL --> PENDING: reading out of range
+    PENDING --> NORMAL: back in range before dwell<br/>(short spike — no alarm)
+    PENDING --> EXCURSION: out of range ≥ dwell_minutes<br/>(raise excursion)
+    EXCURSION --> CLEARING: back in range<br/>(start recovery timer)
+    CLEARING --> EXCURSION: out of range again<br/>before recovery (no flapping)
+    CLEARING --> NORMAL: in range ≥ recovery_minutes<br/>(close excursion)
+    NORMAL --> [*]
+```
+
+`PENDING → NORMAL` is the door-open case (a short spike never alarms); `CLEARING → EXCURSION` stops an
+open excursion flapping closed on a single reading dipping back into range.
+
 It is a pure function of `(timestamps, values, policy)` — it never reads a clock. That is what lets a
 seven-day test run in milliseconds and what lets the server re-derive the *same* excursions later. The
 shared fixtures in `tests/fixtures/excursions/cases.json` are the contract both sides are held to.
@@ -156,6 +171,37 @@ does not creep (`tracemalloc`), the buffer stays bounded across a two-day outage
 correct across a DST change. Run it with `make soak`.
 
 Watch the whole loop run: `make run` (or `uv run aurora-agent run --count 10`).
+
+## The network tiers (milestone 11)
+
+Everything above proves the agent with no network. These two tiers add the wire — one against real
+containers, one against real silicon.
+
+### Software-in-the-loop (`tests/sil/`)
+
+This is the only tier that leaves the laptop. It uses **testcontainers** to bring up the real stack —
+Postgres, Redis, a Mosquitto broker, the built `appointments-api` image serving HTTP, and a second
+container running that image's MQTT ingestion worker — then drives the agent's *real* transports end to
+end and reads the telemetry back through the API. The two paths:
+
+- **HTTP:** the real `HttpTransport` posts a batch to `POST /devices/{id}/telemetry:batch` with the
+  per-device `X-Device-Secret`, and the API's time-series endpoint then shows the points.
+- **MQTT:** the whole `SensorAgent` (simulated sensor, real `MqttTransport`) publishes to the broker,
+  the worker ingests it, and the same time-series shows the points.
+
+This is what the fakes can never prove: that the wire format, the topic scheme, and the auth line up
+across two independently built repos. It needs Docker and the `appointments-api:local` image; without
+either it **skips cleanly**, so the rest of the suite stays green on a bare laptop. Run it with
+`make sil`. Design and the data-path diagram are in ADR 0005.
+
+### Hardware-in-the-loop (`tests/hil/`)
+
+The driver against a **real** SHT4x over a real I²C bus — the one thing sim/replay cannot prove: that
+the real wiring, timing, and CRC handling work against silicon. These are marked `@pytest.mark.hil`,
+**deselected by default** everywhere, and a second guard skips them unless `/dev/i2c-1` exists or
+`AURORA_HIL=1` is set, so even a bare `pytest` stays green with no hardware. On a wired Pi:
+`AURORA_HIL=1 pytest tests/hil -m hil`. The nightly `hil` CI job runs them on a self-hosted runner,
+gated behind the `HIL_ENABLED` variable. Wiring is documented in `tests/hil/README.md`.
 
 ## What runs where
 

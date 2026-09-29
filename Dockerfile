@@ -1,6 +1,7 @@
-# Container image for running the agent as a gateway (the primary target is a systemd
-# service on a Raspberry Pi; this image is used for the fleet simulator and SIL tests).
-# Kept minimal for milestone 1; extended in milestone 11.
+# Container image for running the agent as a gateway (the primary field target is a systemd service
+# on a Raspberry Pi, packaged as a .deb; this image is what the fleet simulator and the backend/web
+# repos' E2E and load tests point at). Run `docker run <img> fleet --config fleet.yaml` for the
+# device-simulator role, or `run` for a single agent.
 
 FROM python:3.12-slim AS builder
 
@@ -34,8 +35,16 @@ ENV PATH="/app/.venv/bin:$PATH" \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
     PYTHONUNBUFFERED=1
 
+LABEL org.opencontainers.image.title="aurora-sensor-agent" \
+      org.opencontainers.image.description="Aurora Clinic cold-chain sensor agent and fleet simulator" \
+      org.opencontainers.image.source="https://github.com/aurora-clinic/aurora-sensor-agent" \
+      org.opencontainers.image.licenses="MIT"
+
 WORKDIR /app
 COPY --from=builder --chown=app:app /app /app
 USER app
 
 ENTRYPOINT ["aurora-agent"]
+# Default role: run the whole virtual fleet from the bundled fleet.yaml (the device-simulator).
+# Override with `docker run <img> run` for a single agent, or `sim` for the driver only.
+CMD ["fleet", "--config", "fleet.yaml", "--cycles", "20"]

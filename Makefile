@@ -3,7 +3,8 @@
 .DEFAULT_GOAL := help
 UV ?= uv
 
-.PHONY: help setup test lint fix typecheck ci-local sim run fleet soak clean
+.PHONY: help setup test sil lint fix typecheck contract-check ci-local sim run fleet rollout ota-demo \
+	wheel deb image package soak clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -13,7 +14,10 @@ setup: ## Create the venv and install dependencies (uv)
 	$(UV) sync --extra dev
 
 test: ## Run tests with coverage (no hardware / network / Docker needed)
-	$(UV) run pytest tests -q -m "not hil" --cov --cov-report=term-missing
+	$(UV) run pytest tests -q -m "not hil and not sil" --cov --cov-report=term-missing
+
+sil: ## Run the software-in-the-loop tier (agent vs Mosquitto + the API in Docker)
+	$(UV) run pytest tests/sil -q -m sil
 
 lint: ## Lint and check formatting
 	$(UV) run ruff check .
@@ -26,7 +30,10 @@ fix: ## Auto-fix and format
 typecheck: ## Static type check (strict)
 	$(UV) run mypy
 
-ci-local: lint typecheck test ## Run the full PR gate set locally
+contract-check: ## Telemetry-contract drift gate (checksums + cross-repo vs the API)
+	$(UV) run python scripts/check_contract.py
+
+ci-local: lint typecheck contract-check test ## Run the full PR gate set locally
 
 sim: ## Run the driver against the simulated sensor and print readings
 	$(UV) run aurora-agent sim --count 10 --interval 1
@@ -34,8 +41,31 @@ sim: ## Run the driver against the simulated sensor and print readings
 run: ## Run the whole agent loop against the simulator and print the health beacon
 	$(UV) run aurora-agent run --count 10 --interval 0
 
-fleet: ## Start N virtual devices (added in a later milestone)
-	@echo "The fleet target is implemented in milestone 11."
+fleet: ## Run the virtual device fleet from fleet.yaml and print a health table
+	$(UV) run aurora-agent fleet --config fleet.yaml --cycles 20
+
+rollout: ## Staged OTA rollout across the fleet (BAD_BUILD=1 to demo the auto-halt)
+	$(UV) run aurora-agent rollout --config fleet.yaml --version 1.1.0 $(if $(BAD_BUILD),--bad-build,)
+
+ota-demo: ## Generate a keypair, sign a demo artifact, and verify the OTA manifest end to end
+	$(UV) run python scripts/gen_ota_key.py
+	@mkdir -p dist
+	@echo "demo-firmware-payload" > dist/demo-artifact.bin
+	$(UV) run python scripts/build_ota_manifest.py --artifact dist/demo-artifact.bin \
+		--version 1.1.0 --private-key keys/ota_private.pem --out dist/manifest.json
+	$(UV) run python scripts/build_ota_manifest.py --verify --artifact dist/demo-artifact.bin \
+		--manifest dist/manifest.json --public-key keys/ota_public.pem --current-version 1.0.0
+
+wheel: ## Build the Python wheel + sdist into dist/
+	$(UV) build --out-dir dist
+
+deb: ## Build a .deb that installs the agent + deps and a systemd unit (needs dpkg-deb)
+	bash scripts/build_deb.sh
+
+image: ## Build the gateway/fleet-simulator Docker image
+	docker build -t aurora-sensor-agent:local .
+
+package: wheel deb ## Build every release artifact (wheel, sdist, .deb)
 
 soak: ## Run the compressed seven-day soak test (fake clock, tracemalloc)
 	$(UV) run pytest tests/soak -q

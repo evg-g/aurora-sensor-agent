@@ -1,0 +1,5 @@
+# Declares the custom self-hosted runner label used by the gated nightly hil job, so actionlint
+# does not flag it as unknown.
+self-hosted-runner:
+  labels:
+    - aurora-hil
