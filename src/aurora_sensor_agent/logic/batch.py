@@ -17,14 +17,11 @@ import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TypeVar
 
 SCHEMA_VERSION = 1
 
-T = TypeVar("T")
 
-
-def split(items: Sequence[T], max_count: int) -> list[list[T]]:
+def split[T](items: Sequence[T], max_count: int) -> list[list[T]]:
     """Split ``items`` into chunks of at most ``max_count`` (order preserved)."""
     if max_count < 1:
         raise ValueError(f"max_count must be >= 1, got {max_count}")

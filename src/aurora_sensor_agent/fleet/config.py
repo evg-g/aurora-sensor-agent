@@ -6,14 +6,14 @@ fails immediately with a clear message rather than half-way through a rollout.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
-class FaultProfile(str, Enum):
+class FaultProfile(StrEnum):
     """How a virtual device behaves, before and (optionally) after an update.
 
     ``flaky_uplink`` and ``dead_uplink`` model a network that drops some or all publishes;

@@ -118,7 +118,7 @@ def test_missing_signature_fails(tmp_path: Path) -> None:
     _, public_pem = _keypair()
     artifact = _artifact(tmp_path)
     document = {"payload": _payload_for(artifact)}
-    with pytest.raises(OtaVerificationError, match="payload.*signature"):
+    with pytest.raises(OtaVerificationError, match=r"payload.*signature"):
         verify_manifest(json.dumps(document), public_pem)
 
 

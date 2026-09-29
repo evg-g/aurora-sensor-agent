@@ -32,7 +32,7 @@ def _mixed_rng(seed: int, stream: int, t_seconds: float) -> random.Random:
     correlate. Time is quantised to the millisecond so tiny float differences do not change the
     draw. No string hashing, so the result is identical across processes and runs.
     """
-    millis = int(round(t_seconds * 1000.0))
+    millis = round(t_seconds * 1000.0)
     mixed = (seed & 0xFFFFFFFF) * 0x9E3779B1
     mixed ^= (stream & 0xFFFF) * 0x85EBCA77
     mixed ^= millis & 0xFFFFFFFFFFFF

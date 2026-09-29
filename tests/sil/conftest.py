@@ -24,8 +24,7 @@ API_IMAGE = "appointments-api:local"
 DB_URL = "postgresql+psycopg://aurora:aurora@db:5432/aurora"
 REDIS_URL = "redis://redis:6379/0"
 _SERVE_CMD = (
-    'sh -c "alembic upgrade head && '
-    'uvicorn appointments_api.main:app --host 0.0.0.0 --port 8000"'
+    'sh -c "alembic upgrade head && uvicorn appointments_api.main:app --host 0.0.0.0 --port 8000"'
 )
 
 
