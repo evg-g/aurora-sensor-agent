@@ -124,7 +124,7 @@ jobs:
         env:
           OTA_PRIVATE_KEY: ${{ secrets.OTA_PRIVATE_KEY }}
         run: bash scripts/ci_sign_ota.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
