@@ -1,0 +1,36 @@
+# Aurora cold-chain fleet — virtual devices and staged-rollout cohorts.
+#
+# Used by `make fleet` (run the whole fleet) and `make rollout` (staged OTA canary -> 10% -> fleet).
+# Two clinics, five fridges each. One device has a chronically flaky uplink, so the fleet report and
+# the rollout baseline are never a flat zero -- real fleets always have a straggler.
+
+devices:
+  - { id: dev-oslo-01,   clinic_id: clinic-oslo,   setpoint_c: 5.0, seed: 1 }
+  - { id: dev-oslo-02,   clinic_id: clinic-oslo,   setpoint_c: 4.5, seed: 2 }
+  - { id: dev-oslo-03,   clinic_id: clinic-oslo,   setpoint_c: 5.5, seed: 3 }
+  - { id: dev-oslo-04,   clinic_id: clinic-oslo,   setpoint_c: 4.0, seed: 4 }
+  - { id: dev-oslo-05,   clinic_id: clinic-oslo,   setpoint_c: 6.0, seed: 5 }
+  - { id: dev-bergen-01, clinic_id: clinic-bergen, setpoint_c: 5.0, seed: 6 }
+  - { id: dev-bergen-02, clinic_id: clinic-bergen, setpoint_c: 4.8, seed: 7 }
+  - { id: dev-bergen-03, clinic_id: clinic-bergen, setpoint_c: 5.2, seed: 8 }
+  - { id: dev-bergen-04, clinic_id: clinic-bergen, setpoint_c: 4.2, seed: 9 }
+  - { id: dev-bergen-05, clinic_id: clinic-bergen, setpoint_c: 5.0, seed: 10, profile: flaky_uplink }
+
+# Staged rollout order. Smallest blast radius first; halt the moment a cohort regresses.
+cohorts:
+  - { name: canary,      devices: [dev-oslo-01] }
+  - { name: ten_percent, devices: [dev-oslo-02] }
+  - name: fleet
+    devices:
+      - dev-oslo-03
+      - dev-oslo-04
+      - dev-oslo-05
+      - dev-bergen-01
+      - dev-bergen-02
+      - dev-bergen-03
+      - dev-bergen-04
+      - dev-bergen-05
+
+rollout:
+  error_rate_threshold: 0.2   # allowed rise over the pre-update baseline
+  max_error_rate: 0.5         # hard cap regardless of baseline

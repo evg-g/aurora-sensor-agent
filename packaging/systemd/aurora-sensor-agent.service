@@ -1,0 +1,29 @@
+[Unit]
+Description=Aurora Clinic cold-chain sensor agent
+Documentation=https://github.com/aurora-clinic/aurora-sensor-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Run as an unprivileged user created by the package postinst.
+User=aurora
+Group=aurora
+# The package installs the agent and its dependencies under /opt/aurora-sensor-agent/lib.
+Environment=PYTHONPATH=/opt/aurora-sensor-agent/lib
+EnvironmentFile=/etc/aurora-sensor-agent/agent.env
+# The agent run loop. It samples, buffers, and publishes on a fixed interval; a very large cycle
+# count plus Restart=always makes it effectively continuous, and any crash is restarted.
+ExecStart=/usr/bin/python3 -m aurora_sensor_agent.cli run --count 100000000 --interval 30
+Restart=always
+RestartSec=5
+# Hardening: the agent needs no privileges beyond its own state directory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+StateDirectory=aurora-sensor-agent
+ReadWritePaths=/var/lib/aurora-sensor-agent
+
+[Install]
+WantedBy=multi-user.target
