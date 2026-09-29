@@ -14,7 +14,7 @@ One of three repos in the system — see the [top-level `README.md`](https://git
 
 ## Why this exists
 
-To practice **Python on the device side and testing hardware-facing code without owning
+To show **Python on the device side and how to test hardware-facing code without owning
 hardware**. Every hardware touchpoint (I²C bus, serial port, GPIO, clock, network) sits
 behind a `typing.Protocol`, so the same logic runs against real hardware, a physics-flavoured
 simulator, or recorded traces — and the test suite runs on a plain laptop with no hardware,
