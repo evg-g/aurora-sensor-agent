@@ -104,6 +104,21 @@ The centrepiece (`logic/excursion.py`, ADR 0003). The rule in one line: out of t
 longer than `dwell_minutes` raises an excursion; it clears only after `recovery_minutes` back in
 range. A door opening (a short spike) must not alarm.
 
+```mermaid
+stateDiagram-v2
+    [*] --> NORMAL
+    NORMAL --> PENDING: reading out of range
+    PENDING --> NORMAL: back in range before dwell<br/>(short spike — no alarm)
+    PENDING --> EXCURSION: out of range ≥ dwell_minutes<br/>(raise excursion)
+    EXCURSION --> CLEARING: back in range<br/>(start recovery timer)
+    CLEARING --> EXCURSION: out of range again<br/>before recovery (no flapping)
+    CLEARING --> NORMAL: in range ≥ recovery_minutes<br/>(close excursion)
+    NORMAL --> [*]
+```
+
+`PENDING → NORMAL` is the door-open case (a short spike never alarms); `CLEARING → EXCURSION` stops an
+open excursion flapping closed on a single reading dipping back into range.
+
 It is a pure function of `(timestamps, values, policy)` — it never reads a clock. That is what lets a
 seven-day test run in milliseconds and what lets the server re-derive the *same* excursions later. The
 shared fixtures in `tests/fixtures/excursions/cases.json` are the contract both sides are held to.
