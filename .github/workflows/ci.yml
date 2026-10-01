@@ -134,3 +134,55 @@ jobs:
             dist/manifest.json
             keys/ota_public.pem
           retention-days: 14
+
+  security:
+    name: security (audit, secrets, image scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks lists the PR's commits on pull_request events
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # gitleaks scans full history
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --extra dev
+      - name: pip-audit (fail on known CVEs in dependencies)
+        run: uv run --with pip-audit pip-audit
+      - name: gitleaks (secret scan)
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trivy filesystem scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      # Regression guard: a local OTA signing key once ended up in images built with `COPY . .`.
+      # Put a decoy key where a developer's real one lives, build, and fail if it reaches the image.
+      - name: Build the image with a decoy signing key in the context
+        run: |
+          mkdir -p keys
+          echo "decoy - must never be copied into the image" > keys/ota_private.pem
+          docker build -t aurora-sensor-agent:ci .
+      - name: The image contains no keys/ or packaging staging
+        run: |
+          docker run --rm --entrypoint sh aurora-sensor-agent:ci -c \
+            'test ! -e /app/keys && test ! -e /app/staging' \
+            || { echo "::error::keys/ or staging/ was copied into the image - check .dockerignore"; exit 1; }
+      - name: Trivy image scan (fail on HIGH/CRITICAL vulnerabilities and secrets)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: aurora-sensor-agent:ci
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

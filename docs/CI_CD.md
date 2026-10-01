@@ -17,6 +17,7 @@ use `fail-fast: false`, and every workflow has `workflow_dispatch` so you can ru
 | `contract` | `scripts/check_contract.py` | the telemetry contract drifting from the API's vendored copy (see below) |
 | `sil` | `pytest tests/sil -m sil` | the agent's real transports no longer lining up with the real API + broker |
 | `package` | build wheel + `.deb` + a signed OTA manifest | a release artifact that does not build, or an OTA manifest that does not verify |
+| `security` | `pip-audit`, gitleaks, Trivy filesystem + image scan (HIGH/CRITICAL vulnerabilities and secrets), and a decoy-key build that fails if `keys/` or `staging/` reaches the image | a vulnerable dependency or base-image package shipping unseen, a committed secret, or a local OTA signing key baked into an image by `COPY . .` |
 
 **Why hil and sil are excluded from `test`.** `hil` needs real hardware; `sil` needs Docker and the
 API image. Keeping them out of the matrix means the core tiers stay fast and run anywhere, which is the
