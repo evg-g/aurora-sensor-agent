@@ -28,6 +28,10 @@ RUN if [ -n "$EXTRA_CA_CERT" ]; then \
         echo "$EXTRA_CA_CERT" > /usr/local/share/ca-certificates/extra.crt && \
         update-ca-certificates; \
     fi && \
+    # Pull the base image's security fixes (same as appointments-api: Debian often ships the fix
+    # days before the python:3.12-slim tag is rebuilt).
+    apt-get update && apt-get upgrade -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
     groupadd --system app && useradd --system --gid app --home /app app
 
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -37,7 +41,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 LABEL org.opencontainers.image.title="aurora-sensor-agent" \
       org.opencontainers.image.description="Aurora Clinic cold-chain sensor agent and fleet simulator" \
-      org.opencontainers.image.source="https://github.com/aurora-clinic/aurora-sensor-agent" \
+      org.opencontainers.image.source="https://github.com/evg-g/aurora-sensor-agent" \
       org.opencontainers.image.licenses="MIT"
 
 WORKDIR /app

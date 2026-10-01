@@ -1,6 +1,6 @@
 [Unit]
 Description=Aurora Clinic cold-chain sensor agent
-Documentation=https://github.com/aurora-clinic/aurora-sensor-agent
+Documentation=https://github.com/evg-g/aurora-sensor-agent
 After=network-online.target
 Wants=network-online.target
 

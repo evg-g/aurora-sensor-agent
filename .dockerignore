@@ -1,0 +1,45 @@
+# Keep the build context small and never ship secrets, VCS history, or local artifacts into the
+# image. The Dockerfile does `COPY . .` and the runtime stage copies the whole /app, so anything
+# not listed here ends up in the image.
+
+# Secrets: the OTA signing key (keys/ota_private.pem) must never be baked into an image.
+keys/
+.env
+.env.*
+!.env.example
+
+# VCS and CI
+.git
+.github
+
+# Local environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Build and packaging artifacts (.deb staging, wheels, OTA manifests)
+build/
+dist/
+staging/
+*.deb
+*.egg-info/
+
+# Local runtime data
+*.sqlite
+*.sqlite3
+traces/*.jsonl
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
