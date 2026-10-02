@@ -1,0 +1,13 @@
+{
+  "repo": "aurora-sensor-agent",
+  "bindings": {
+    "pytest-unit": {
+      "surface": ["logic"],
+      "runner": "pytest",
+      "prefix": ["uv", "run"],
+      "location": "tests",
+      "args": ["-m", "agent_trusted and not hil and not sil"],
+      "selector": "documentation only: -m \"agent_trusted and not hil and not sil\" -k <TEST_NAME>"
+    }
+  }
+}

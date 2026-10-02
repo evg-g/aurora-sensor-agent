@@ -79,6 +79,7 @@ addopts = "-ra --strict-markers --strict-config"
 markers = [
     "hil: hardware-in-the-loop tests; deselected by default, run only with real hardware",
     "sil: software-in-the-loop tests; need Docker + the API image, run in their own CI job",
+    "agent_trusted: ADLC proof tests; the ADLC proof runner selects only these (see .claude/surface-bindings.json).",
 ]
 
 [tool.coverage.run]
