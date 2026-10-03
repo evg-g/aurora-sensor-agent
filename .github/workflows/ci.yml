@@ -80,7 +80,10 @@ jobs:
       - run: uv sync --extra dev
       - name: contract drift gate
         env:
-          AURORA_API_REPO: ${{ vars.API_REPO != '' && '../appointments-api' || 'appointments-api' }}
+          # Set: the sibling checkout above lands at <workspace>/appointments-api.
+          # Unset (a fork): falls back to ../, which is absent in CI, so the script skips the
+          # cross-repo half and keeps the in-repo checksum guard. ../ is also the local-dev layout.
+          AURORA_API_REPO: ${{ vars.API_REPO != '' && 'appointments-api' || '../appointments-api' }}
         run: uv run python scripts/check_contract.py
 
   sil:
