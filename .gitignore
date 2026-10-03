@@ -43,3 +43,7 @@ staging/
 .vscode/
 *.swp
 .DS_Store
+
+# Sibling repo checked out into the workspace by CI (contract drift gate, SIL image build).
+/appointments-api/
+/api-src/
