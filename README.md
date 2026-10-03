@@ -64,6 +64,24 @@ packaging/       # systemd unit + Debian control/scripts
 tests/           # unit / driver_contract / faults / contract / sil / soak / hil
 ```
 
+## Docs
+
+| Doc | What it covers |
+|---|---|
+| [`docs/HARDWARE_TESTING.md`](docs/HARDWARE_TESTING.md) | How a device agent is tested with no hardware: the protocol seams, the simulator, trace replay, fault injection, the compressed soak, and the SIL and HIL tiers. |
+| [`docs/EXERCISES.md`](docs/EXERCISES.md) | Break-it-on-purpose exercises: make the change, predict which gate fails, run it, confirm. |
+| [`docs/CI_CD.md`](docs/CI_CD.md) | The pipeline: lint, typecheck, tests, contract gate, SIL, packaging, and the security job. |
+| [`docs/OTA_ROLLOUT.md`](docs/OTA_ROLLOUT.md) | Signed OTA manifests and the staged rollout with auto-halt. |
+| [`docs/PACKAGING.md`](docs/PACKAGING.md) | The vendored `.deb` and the systemd unit. |
+| [`docs/KNOWN_GAPS.md`](docs/KNOWN_GAPS.md) | What is deliberately not done yet, and why. |
+| [`docs/adr/`](docs/adr/) | The design decisions, one file each. |
+
+## Conventions
+
+See [`CLAUDE.md`](CLAUDE.md): hardware behind `typing.Protocol` seams, pure logic with an injected
+clock, `mypy --strict` and `ruff` clean, and determinism everywhere — no real sleep, no real clock,
+seeded RNG.
+
 ## License
 
 MIT — see `LICENSE`.
